@@ -30,17 +30,26 @@ client.on('interactionCreate', async interaction => {
   try {
     await command.execute(interaction);
   } catch (error) {
-    console.error(error);
+    console.error(`Error executing ${interaction.commandName}:`, error);
 
-    // Only send an error reply if you haven't replied or deferred yet
-    if (!interaction.replied && !interaction.deferred) {
-      await interaction.reply({
-        content: 'There was an error executing that command!',
-        ephemeral: true,
-      });
+    try {
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({
+          content: 'There was an error executing that command!',
+          ephemeral: true
+        });
+      } else if (interaction.deferred) {
+        await interaction.editReply({
+          content: 'There was an error executing that command!',
+          ephemeral: true
+        });
+      }
+    } catch (err) {
+      console.error('Error sending error response:', err);
     }
   }
 });
 
 // Login
 client.login(process.env.DISCORD_TOKEN);
+
