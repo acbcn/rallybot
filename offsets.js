@@ -1,36 +1,28 @@
 const fs = require('fs');
 const path = require('path');
 
-// Define data directory based on environment
-const dataDir = process.env.NODE_ENV === 'production' ? '/data' : __dirname;
-
-// Create data directory if it doesn't exist in production
-if (process.env.NODE_ENV === 'production') {
-  try {
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
-  } catch (error) {
-    console.error('Error creating data directory:', error);
-  }
-}
-
 // Where we store the JSON data
-const filePath = path.join(dataDir, 'offsets.json');
+const filePath = path.join(__dirname, 'offsets.json');
 
 // Our in-memory offsets object
-// Structure example: offsets[alliance][userId] = numberOfSeconds
 let offsets = {};
 
 // Attempt to load existing data at startup
 try {
-  const data = fs.readFileSync(filePath, 'utf8');
+  let data = fs.readFileSync(filePath, 'utf8');
+  // Remove BOM if present
+  if (data.charCodeAt(0) === 0xFEFF) {
+    data = data.slice(1);
+  }
   offsets = JSON.parse(data);
   console.log('Loaded offsets from offsets.json');
 } catch (error) {
-  console.log('No existing offsets.json found or error reading file. Starting with empty data.');
-  console.log('File path attempted:', filePath);
-  if (error.code !== 'ENOENT') {
+  if (error.code === 'ENOENT') {
+    console.log('No existing offsets.json found. Starting with empty data.');
+    // Create empty offsets file
+    fs.writeFileSync(filePath, JSON.stringify({}, null, 2));
+  } else {
+    console.log('Error reading offsets.json. Starting with empty data.');
     console.error('Error details:', error);
   }
 }
@@ -42,7 +34,6 @@ function saveOffsets() {
     console.log('Offsets saved to offsets.json');
   } catch (error) {
     console.error('Error saving offsets:', error);
-    console.error('Attempted to save to:', filePath);
   }
 }
 
