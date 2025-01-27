@@ -24,33 +24,57 @@ module.exports = {
         .setRequired(true)
     ),
   async execute(interaction) {
-    // Gather inputs
-    const personName = interaction.options.getString('name');
-    const neededSeconds = interaction.options.getInteger('seconds');
-    const alliance = interaction.options.getString('alliance').toUpperCase();
-    // Get the current guild/server ID
-    const guildId = interaction.guildId;
+    try {
+      // Defer the reply immediately to prevent timeout
+      await interaction.deferReply({ ephemeral: true });
 
-    // Ensure this guild is in the offsets data
-    if (!offsets[guildId]) {
-      offsets[guildId] = {};
+      // Gather inputs
+      const personName = interaction.options.getString('name');
+      const neededSeconds = interaction.options.getInteger('seconds');
+      const alliance = interaction.options.getString('alliance').toUpperCase();
+      const guildId = interaction.guildId;
+
+      // Initialize nested objects safely
+      offsets[guildId] = offsets[guildId] || {};
+      offsets[guildId][alliance] = offsets[guildId][alliance] || {};
+
+      // Create the non-Discord user key
+      const key = `NONDISCORD:${personName}`;
+
+      // Remove this person from other alliances in this guild if they exist
+      for (const ally in offsets[guildId]) {
+        if (ally !== alliance) {
+          const existingKey = Object.keys(offsets[guildId][ally] || {})
+            .find(k => k.startsWith('NONDISCORD:') && k.slice(10) === personName);
+          if (existingKey) {
+            delete offsets[guildId][ally][existingKey];
+          }
+        }
+      }
+
+      // Store offset
+      offsets[guildId][alliance][key] = neededSeconds;
+
+      // Save to JSON
+      try {
+        saveOffsets();
+      } catch (saveError) {
+        console.error('Error saving offsets:', saveError);
+        await interaction.editReply('There was an error saving the time. Please try again.');
+        return;
+      }
+
+      // Use editReply since we deferred earlier
+      await interaction.editReply(
+        `Set march time for **${personName}** in alliance **${alliance}** to **${neededSeconds} seconds**.`
+      );
+    } catch (error) {
+      console.error('Error in setothername command:', error);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: 'There was an error processing your command.', ephemeral: true });
+      } else {
+        await interaction.editReply({ content: 'There was an error processing your command.', ephemeral: true });
+      }
     }
-    // Ensure this alliance exists within this guild
-    if (!offsets[guildId][alliance]) {
-      offsets[guildId][alliance] = {};
-    }
-
-    // We'll store them under a "NONDISCORD" key so we know it's not a real Discord ID
-    const key = `NONDISCORD:${personName}`;
-
-    // Store offset in memory (for this guild + alliance)
-    offsets[guildId][alliance][key] = neededSeconds;
-
-    // Save to JSON, so the data persists
-    saveOffsets();
-
-    await interaction.reply(
-      `Set march time for **${personName}** in alliance **${alliance}** to **${neededSeconds} seconds**.`
-    );
   },
 };
