@@ -38,13 +38,19 @@ module.exports = {
       // Create the non-Discord user key
       const key = `NONDISCORD:${personName}`;
 
-      // Remove this person from other alliances in this guild if they exist
+      // Remove this person from other alliances in this guild
       for (const ally in offsets[guildId]) {
-        if (ally !== alliance) {
-          const existingKey = Object.keys(offsets[guildId][ally] || {})
-            .find(k => k.startsWith('NONDISCORD:') && k.slice(10) === personName);
-          if (existingKey) {
-            delete offsets[guildId][ally][existingKey];
+        // Skip the current alliance
+        if (ally === alliance) continue;
+        
+        // Check each key in the alliance
+        if (offsets[guildId][ally]) {
+          for (const existingKey in offsets[guildId][ally]) {
+            // If it's a NONDISCORD key and matches our person
+            if (existingKey.startsWith('NONDISCORD:') && 
+                existingKey.slice(10).toLowerCase() === personName.toLowerCase()) {
+              delete offsets[guildId][ally][existingKey];
+            }
           }
         }
       }
