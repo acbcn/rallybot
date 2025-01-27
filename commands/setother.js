@@ -25,9 +25,6 @@ module.exports = {
     ),
   async execute(interaction) {
     try {
-      // Defer the reply immediately to prevent timeout
-      await interaction.deferReply({ ephemeral: true });
-
       // Gather inputs
       const personName = interaction.options.getString('name');
       const neededSeconds = interaction.options.getInteger('seconds');
@@ -56,24 +53,19 @@ module.exports = {
       offsets[guildId][alliance][key] = neededSeconds;
 
       // Save to JSON
-      try {
-        saveOffsets();
-      } catch (saveError) {
-        console.error('Error saving offsets:', saveError);
-        await interaction.editReply('There was an error saving the time. Please try again.');
-        return;
-      }
+      saveOffsets();
 
-      // Use editReply since we deferred earlier
-      await interaction.editReply(
-        `Set march time for **${personName}** in alliance **${alliance}** to **${neededSeconds} seconds**.`
-      );
+      await interaction.reply({
+        content: `Set march time for **${personName}** in alliance **${alliance}** to **${neededSeconds} seconds**.`,
+        ephemeral: true
+      });
     } catch (error) {
       console.error('Error in setothername command:', error);
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: 'There was an error processing your command.', ephemeral: true });
-      } else {
-        await interaction.editReply({ content: 'There was an error processing your command.', ephemeral: true });
+      if (!interaction.replied) {
+        await interaction.reply({ 
+          content: 'There was an error processing your command.', 
+          ephemeral: true 
+        });
       }
     }
   },
