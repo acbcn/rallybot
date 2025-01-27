@@ -18,38 +18,50 @@ module.exports = {
         .setDescription('3-letter alliance abbreviation.')
         .setRequired(true)
     ),
-    async execute(interaction) {
-        const userId = interaction.user.id;
-        const guildId = interaction.guildId; // <--- KEY CHANGE #1
-        const neededSeconds = interaction.options.getInteger('seconds');
-        const alliance = interaction.options.getString('alliance').toUpperCase();
-    
-        // If this guild doesn't exist in offsets yet, create it
-        if (!offsets[guildId]) {
-          offsets[guildId] = {};
-        }
-    
-        // Optional: remove user from old alliances in *this guild* only
-        // (So each user can only belong to one alliance per guild)
-        for (const ally in offsets[guildId]) {
-          if (ally !== alliance && offsets[guildId][ally][userId]) {
-            delete offsets[guildId][ally][userId];
-          }
-        }
-    
-        // If this alliance doesn't exist in this guild, create it
-        if (!offsets[guildId][alliance]) {
-          offsets[guildId][alliance] = {};
-        }
-    
-        // Now set the user's offset
-        offsets[guildId][alliance][userId] = neededSeconds;
-    
-        // Save changes to JSON
-        saveOffsets();
+  async execute(interaction) {
+    try {
+      // Defer the reply immediately to prevent timeout
+      await interaction.deferReply({ ephemeral: true });
 
-    await interaction.reply(
-      `You've been set to alliance **${alliance}** with a march time of **${neededSeconds}s**.`
-    );
+      const userId = interaction.user.id;
+      const guildId = interaction.guildId;
+      const neededSeconds = interaction.options.getInteger('seconds');
+      const alliance = interaction.options.getString('alliance').toUpperCase();
+
+      // Initialize nested objects safely
+      offsets[guildId] = offsets[guildId] || {};
+      offsets[guildId][alliance] = offsets[guildId][alliance] || {};
+
+      // Remove user from old alliances in this guild
+      for (const ally in offsets[guildId]) {
+        if (ally !== alliance && offsets[guildId][ally]?.[userId]) {
+          delete offsets[guildId][ally][userId];
+        }
+      }
+
+      // Set the user's offset
+      offsets[guildId][alliance][userId] = neededSeconds;
+
+      // Save changes to JSON
+      try {
+        saveOffsets();
+      } catch (saveError) {
+        console.error('Error saving offsets:', saveError);
+        await interaction.editReply('There was an error saving your time. Please try again.');
+        return;
+      }
+
+      // Use editReply since we deferred earlier
+      await interaction.editReply(
+        `You've been set to alliance **${alliance}** with a march time of **${neededSeconds}s**.`
+      );
+    } catch (error) {
+      console.error('Error in settime command:', error);
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: 'There was an error processing your command.', ephemeral: true });
+      } else {
+        await interaction.editReply({ content: 'There was an error processing your command.', ephemeral: true });
+      }
+    }
   },
 };
