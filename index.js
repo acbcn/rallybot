@@ -2,6 +2,7 @@ require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const http = require('http');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
@@ -48,6 +49,17 @@ client.on('interactionCreate', async interaction => {
       console.error('Error sending error response:', err);
     }
   }
+});
+
+// Create a simple HTTP server
+const server = http.createServer((req, res) => {
+  res.writeHead(200);
+  res.end('Bot is running!');
+});
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`HTTP server running on port ${PORT}`);
 });
 
 // Login
