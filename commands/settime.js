@@ -1,4 +1,3 @@
-// settime.js
 const { SlashCommandBuilder } = require('discord.js');
 const { offsets, saveOffsets } = require('../offsets.js');
 
@@ -20,9 +19,6 @@ module.exports = {
     ),
   async execute(interaction) {
     try {
-      // Defer the reply immediately to prevent timeout
-      await interaction.deferReply({ ephemeral: true });
-
       const userId = interaction.user.id;
       const guildId = interaction.guildId;
       const neededSeconds = interaction.options.getInteger('seconds');
@@ -43,24 +39,19 @@ module.exports = {
       offsets[guildId][alliance][userId] = neededSeconds;
 
       // Save changes to JSON
-      try {
-        saveOffsets();
-      } catch (saveError) {
-        console.error('Error saving offsets:', saveError);
-        await interaction.editReply('There was an error saving your time. Please try again.');
-        return;
-      }
+      saveOffsets();
 
-      // Use editReply since we deferred earlier
-      await interaction.editReply(
-        `You've been set to alliance **${alliance}** with a march time of **${neededSeconds}s**.`
-      );
+      await interaction.reply({
+        content: `You've been set to alliance **${alliance}** with a march time of **${neededSeconds}s**.`,
+        ephemeral: true
+      });
     } catch (error) {
       console.error('Error in settime command:', error);
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: 'There was an error processing your command.', ephemeral: true });
-      } else {
-        await interaction.editReply({ content: 'There was an error processing your command.', ephemeral: true });
+      if (!interaction.replied) {
+        await interaction.reply({ 
+          content: 'There was an error processing your command.', 
+          ephemeral: true 
+        });
       }
     }
   },
