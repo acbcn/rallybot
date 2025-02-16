@@ -18,21 +18,15 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 (async () => {
   try {
-    console.log('Started refreshing application (/) commands.');
+    console.log('Started refreshing application (/) commands globally.');
 
-    // Register for a single guild (faster updates):
+    // Register commands globally (takes about an hour to update):
     await rest.put(
-      Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+      Routes.applicationCommands(process.env.CLIENT_ID),
       { body: commands },
     );
 
-    // If you want to register globally (takes an hour-ish to update):
-    // await rest.put(
-    //   Routes.applicationCommands(process.env.CLIENT_ID),
-    //   { body: commands },
-    // );
-
-    console.log('Successfully reloaded application (/) commands.');
+    console.log('Successfully reloaded application (/) commands globally. Changes will take effect within an hour.');
   } catch (error) {
     console.error(error);
   }
