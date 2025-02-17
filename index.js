@@ -1,4 +1,15 @@
 require('dotenv').config();
+
+// Validate required environment variables
+const requiredEnvVars = ['DISCORD_TOKEN', 'CLIENT_ID'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar]);
+
+if (missingEnvVars.length > 0) {
+  console.error('Error: Missing required environment variables:', missingEnvVars.join(', '));
+  console.error('Please make sure these are set in your .env file');
+  process.exit(1);
+}
+
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
@@ -33,17 +44,13 @@ client.on('interactionCreate', async interaction => {
   } catch (error) {
     console.error(`Error executing ${interaction.commandName}:`, error);
 
+    const errorMessage = 'There was an error executing that command!';
+    
     try {
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({
-          content: 'There was an error executing that command!',
-          ephemeral: true
-        });
-      } else if (interaction.deferred) {
-        await interaction.editReply({
-          content: 'There was an error executing that command!',
-          ephemeral: true
-        });
+      if (interaction.deferred) {
+        await interaction.editReply({ content: errorMessage });
+      } else if (!interaction.replied) {
+        await interaction.reply({ content: errorMessage, flags: 64 });
       }
     } catch (err) {
       console.error('Error sending error response:', err);

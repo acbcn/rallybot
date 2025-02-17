@@ -16,7 +16,7 @@ module.exports = {
     
     await interaction.reply({
       content: `You can invite the bot to other servers using this link:\n${inviteUrl}\n\nThe bot can also be added directly through Discord's App Directory.`,
-      ephemeral: true
+      flags: 64 // This replaces ephemeral: true
     });
   },
 }; 
