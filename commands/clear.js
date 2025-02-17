@@ -13,50 +13,52 @@ module.exports = {
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild), // Requires "Manage Server" permission
   async execute(interaction) {
+    // Defer the reply immediately to prevent timeout
+    await interaction.deferReply({ ephemeral: true });
+    
     try {
       const guildId = interaction.guildId;
       const alliance = interaction.options.getString('alliance')?.toUpperCase();
 
       // Check if guild has any data
       if (!offsets[guildId]) {
-        return interaction.reply({
+        return await interaction.editReply({
           content: 'No data exists for this server.',
-          ephemeral: true
         });
       }
 
       if (alliance) {
         // Clear specific alliance
         if (!offsets[guildId][alliance]) {
-          return interaction.reply({
+          return await interaction.editReply({
             content: `No data found for alliance **${alliance}** in this server.`,
-            ephemeral: true
           });
         }
 
         delete offsets[guildId][alliance];
-        await interaction.reply({
+        // Save before responding
+        await saveOffsets();
+        await interaction.editReply({
           content: `Cleared all data for alliance **${alliance}** in this server.`,
-          ephemeral: true
         });
       } else {
         // Clear entire guild
         delete offsets[guildId];
-        await interaction.reply({
+        // Save before responding
+        await saveOffsets();
+        await interaction.editReply({
           content: 'Cleared all rally data for this server.',
-          ephemeral: true
         });
       }
-
-      // Save changes
-      saveOffsets();
     } catch (error) {
       console.error('Error in clear command:', error);
-      if (!interaction.replied) {
-        await interaction.reply({
+      // Always try to respond with an error message
+      try {
+        await interaction.editReply({
           content: 'There was an error processing your command.',
-          ephemeral: true
         });
+      } catch (err) {
+        console.error('Error sending error response:', err);
       }
     }
   },
