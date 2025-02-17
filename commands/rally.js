@@ -1,7 +1,54 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require('discord.js');
 const { offsets } = require('../offsets.js'); // Import from your offsets file
 // 5-minute rally stage in seconds
 const RALLY_STAGE_TIME = 300; 
+// 15 minutes in milliseconds
+const REFRESH_BUTTON_DURATION = 900000;
+
+// Helper function to format time
+function formatTime(hours, minutes, seconds = 0) {
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+// Helper function to generate the rally message
+function generateRallyMessage(alliance, targetTime, allianceOffsets, centerTimeInSeconds) {
+  const now = new Date();
+  const currentUTC = formatTime(now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
+
+  let response = `**Rally for Alliance ${alliance}**\n`;
+  response += `🎯 Hit Center at **${targetTime}:00 UTC**\n`;
+  response += `🕒 Current UTC Time: **${currentUTC}**\n\n`;
+  response += `**Start Times:**\n`;
+
+  for (const key of Object.keys(allianceOffsets)) {
+    const userOffset = allianceOffsets[key];
+    let startTimeInSeconds = centerTimeInSeconds - (RALLY_STAGE_TIME + userOffset);
+
+    if (startTimeInSeconds < 0) {
+      startTimeInSeconds += 24 * 3600;
+    }
+    if (startTimeInSeconds >= 24 * 3600) {
+      startTimeInSeconds -= 24 * 3600;
+    }
+
+    const startHour = Math.floor(startTimeInSeconds / 3600);
+    const remainder = startTimeInSeconds % 3600;
+    const startMinute = Math.floor(remainder / 60);
+    const startSecond = remainder % 60;
+    const startTime = formatTime(startHour, startMinute, startSecond);
+
+    let displayName;
+    if (key.startsWith('NONDISCORD:')) {
+      displayName = key.replace('NONDISCORD:', '');
+    } else {
+      displayName = `<@${key}>`;
+    }
+
+    response += `${displayName}: **${startTime} UTC** (needs ${userOffset}s)\n`;
+  }
+
+  return response;
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -21,7 +68,7 @@ module.exports = {
     ),
   async execute(interaction) {
     // 1) Get input
-    const guildId = interaction.guildId; // <-- IMPORTANT: Identify this server
+    const guildId = interaction.guildId;
     const timeString = interaction.options.getString('time');
     const alliance = interaction.options.getString('alliance').toUpperCase();
 
@@ -54,7 +101,7 @@ module.exports = {
       );
     }
 
-    // 6) Pull the allianceOffsets (e.g., { userIdOrNONDISCORD: offsetSeconds, ... })
+    // 6) Pull the allianceOffsets
     const allianceOffsets = offsets[guildId][alliance];
     if (Object.keys(allianceOffsets).length === 0) {
       return interaction.reply(
@@ -62,48 +109,46 @@ module.exports = {
       );
     }
 
-    // 7) Build the reply header
-    let response = `**Rally for Alliance ${alliance}**\n`;
-    response += `Hit Center at **${timeString} UTC**\n\n`;
-    response += `**Start Times:**\n`;
+    // Create refresh button
+    const refresh = new ButtonBuilder()
+      .setCustomId('refresh')
+      .setLabel('🔄 Refresh UTC Time')
+      .setStyle(ButtonStyle.Secondary);
 
-    // 8) Calculate each leader's start time
-    for (const key of Object.keys(allianceOffsets)) {
-      const userOffset = allianceOffsets[key]; // offset in seconds
-      let startTimeInSeconds = centerTimeInSeconds - (RALLY_STAGE_TIME + userOffset);
+    const row = new ActionRowBuilder()
+      .addComponents(refresh);
 
-      // Wrap around if negative (before 00:00)
-      if (startTimeInSeconds < 0) {
-        startTimeInSeconds += 24 * 3600;
+    // Generate initial message
+    const response = generateRallyMessage(alliance, timeString, allianceOffsets, centerTimeInSeconds);
+
+    // Send message with refresh button
+    const message = await interaction.reply({
+      content: response,
+      components: [row],
+      fetchReply: true
+    });
+
+    // Create button collector
+    const collector = message.createMessageComponentCollector({ time: REFRESH_BUTTON_DURATION });
+
+    collector.on('collect', async i => {
+      if (i.customId === 'refresh') {
+        // Generate new message with updated time
+        const updatedResponse = generateRallyMessage(alliance, timeString, allianceOffsets, centerTimeInSeconds);
+        await i.update({
+          content: updatedResponse,
+          components: [row]
+        });
       }
-      // Wrap around if >= 24:00
-      if (startTimeInSeconds >= 24 * 3600) {
-        startTimeInSeconds -= 24 * 3600;
-      }
+    });
 
-      // Convert to HH:MM:SS
-      const startHour = Math.floor(startTimeInSeconds / 3600);
-      const remainder = startTimeInSeconds % 3600;
-      const startMinute = Math.floor(remainder / 60);
-      const startSecond = remainder % 60;
-
-      // Format
-      const hh = String(startHour).padStart(2, '0');
-      const mm = String(startMinute).padStart(2, '0');
-      const ss = String(startSecond).padStart(2, '0');
-
-      // Check if it's a non-Discord user or a Discord user ID
-      let displayName;
-      if (key.startsWith('NONDISCORD:')) {
-        displayName = key.replace('NONDISCORD:', '');
-      } else {
-        displayName = `<@${key}>`;
-      }
-
-      response += `${displayName}: **${hh}:${mm}:${ss} UTC** (needs ${userOffset}s)\n`;
-    }
-
-    // 9) Send the final message
-    await interaction.reply(response);
+    collector.on('end', async () => {
+      // Remove button after time expires
+      const finalResponse = generateRallyMessage(alliance, timeString, allianceOffsets, centerTimeInSeconds);
+      await message.edit({
+        content: finalResponse,
+        components: []
+      }).catch(console.error);
+    });
   },
 };
