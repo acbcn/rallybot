@@ -8,6 +8,16 @@ const REFRESH_BUTTON_DURATION = 900000;
 // Add this at the top with other constants
 const scheduledDMs = new Map();
 
+// Helper function to clear existing scheduled DMs for an alliance
+function clearScheduledDMsForAlliance(alliance) {
+  for (const [key, timeoutId] of scheduledDMs.entries()) {
+    if (key.includes(`-${alliance}-`)) {
+      clearTimeout(timeoutId);
+      scheduledDMs.delete(key);
+    }
+  }
+}
+
 // Helper function to format time
 function formatTime(hours, minutes, seconds = 0) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
@@ -18,9 +28,10 @@ async function scheduleRallyDM(interaction, userId, alliance, startTime, delayIn
   // Create a unique key for this rally notification
   const notificationKey = `${userId}-${alliance}-${startTime}`;
   
-  // If we already scheduled this notification, don't schedule it again
+  // If we already scheduled this notification, clear it first
   if (scheduledDMs.has(notificationKey)) {
-    return;
+    clearTimeout(scheduledDMs.get(notificationKey));
+    scheduledDMs.delete(notificationKey);
   }
 
   const timeoutId = setTimeout(async () => {
@@ -137,6 +148,9 @@ module.exports = {
         `No rally leaders have set their time for alliance **${alliance}** yet!`
       );
     }
+
+    // Clear any existing scheduled DMs for this alliance
+    clearScheduledDMsForAlliance(alliance);
 
     // Schedule DMs for users who want notifications
     if (offsets.wantsDM?.[guildId]) {
