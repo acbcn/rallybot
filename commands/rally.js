@@ -198,8 +198,11 @@ module.exports = {
 
     collector.on('collect', async i => {
       if (i.customId === 'refresh') {
-        // Generate new message with updated time
-        const updatedResponse = generateRallyMessage(alliance, timeString, allianceOffsets, centerTimeInSeconds);
+        // Recalculate center time in seconds to maintain relative time
+        const now = new Date();
+        const currentUTCHours = now.getUTCHours();
+        const currentUTCMinutes = now.getUTCMinutes();
+        const updatedResponse = generateRallyMessage(alliance, timeString, allianceOffsets, (centerHour * 3600 + centerMinute * 60));
         await i.update({
           content: updatedResponse,
           components: [row]
@@ -209,7 +212,7 @@ module.exports = {
 
     collector.on('end', async () => {
       // Remove button after time expires
-      const finalResponse = generateRallyMessage(alliance, timeString, allianceOffsets, centerTimeInSeconds);
+      const finalResponse = generateRallyMessage(alliance, timeString, allianceOffsets, (centerHour * 3600 + centerMinute * 60));
       await message.edit({
         content: finalResponse,
         components: []
