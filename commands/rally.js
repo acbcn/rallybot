@@ -181,7 +181,7 @@ module.exports = {
     const message = await interaction.reply({
       content: response,
       components: [row],
-      fetchReply: true
+      withResponse: true
     });
 
     // Create button collector
