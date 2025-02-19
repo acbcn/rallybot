@@ -2,9 +2,11 @@
 
 Rally Bot is a Discord bot designed to help coordinate rally events by scheduling and managing target times (UTC) for alliances in your server. It supports commands for scheduling rallies, refreshing the current UTC time in real-time, clearing rally data, and providing an invite link with the minimal required permissions.
 
+Invite your your server: https://discord.com/oauth2/authorize?client_id=1333192734659448924&permissions=2147748928&integration_type=0&scope=bot+applications.commands
+
 ## Features
 
-- **Schedule Rally**: Use the `/rally` command with a target UTC time (in HH:MM format) and alliance abbreviation. The bot calculates and displays the start times for members based on their offsets.
+- **Schedule Rally**: Use the `/rally` command with a target UTC time (in HH:MM format) and alliance abbreviation. The bot calculates and displays the start times for members based on their march times (offsets).
 - **Real-time UTC Refresh**: The rally message includes the current UTC time and a refresh button (active for a specified duration) to update the time dynamically.
 - **Clear Rally Data**: Use the `/clear` command to clear rally data for a specific alliance or the entire server. This feature includes a confirmation step with interactive buttons.
 - **Set Rally Times**: Commands like `/settime` allow rally leaders to set their individual rally times (offsets are taken into consideration for rally coordination).
