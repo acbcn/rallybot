@@ -5,21 +5,38 @@ const RALLY_STAGE_TIME = 300;
 // 15 minutes in milliseconds
 const REFRESH_BUTTON_DURATION = 900000;
 
+// Add this at the top with other constants
+const scheduledDMs = new Map();
+
 // Helper function to format time
 function formatTime(hours, minutes, seconds = 0) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
-// Add this function after the formatTime function
+// Update the scheduleRallyDM function
 async function scheduleRallyDM(interaction, userId, alliance, startTime, delayInSeconds) {
-  setTimeout(async () => {
+  // Create a unique key for this rally notification
+  const notificationKey = `${userId}-${alliance}-${startTime}`;
+  
+  // If we already scheduled this notification, don't schedule it again
+  if (scheduledDMs.has(notificationKey)) {
+    return;
+  }
+
+  const timeoutId = setTimeout(async () => {
     try {
       const user = await interaction.client.users.fetch(userId);
       await user.send(`🚀 **RALLY LAUNCH ALERT!**\nTime to launch your rally for alliance **${alliance}**!\nYour start time is: **${startTime} UTC**`);
     } catch (error) {
       console.error(`Failed to send DM to user ${userId}:`, error);
+    } finally {
+      // Clean up after sending
+      scheduledDMs.delete(notificationKey);
     }
   }, delayInSeconds * 1000);
+
+  // Store the timeout ID so we can clear it if needed
+  scheduledDMs.set(notificationKey, timeoutId);
 }
 
 // Helper function to generate the rally message
