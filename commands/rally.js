@@ -10,6 +10,18 @@ function formatTime(hours, minutes, seconds = 0) {
   return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
 
+// Add this function after the formatTime function
+async function scheduleRallyDM(interaction, userId, alliance, startTime, delayInSeconds) {
+  setTimeout(async () => {
+    try {
+      const user = await interaction.client.users.fetch(userId);
+      await user.send(`🚀 **RALLY LAUNCH ALERT!**\nTime to launch your rally for alliance **${alliance}**!\nYour start time is: **${startTime} UTC**`);
+    } catch (error) {
+      console.error(`Failed to send DM to user ${userId}:`, error);
+    }
+  }, delayInSeconds * 1000);
+}
+
 // Helper function to generate the rally message
 function generateRallyMessage(alliance, targetTime, allianceOffsets, centerTimeInSeconds) {
   const now = new Date();
@@ -107,6 +119,50 @@ module.exports = {
       return interaction.reply(
         `No rally leaders have set their time for alliance **${alliance}** yet!`
       );
+    }
+
+    // Schedule DMs for users who want notifications
+    if (offsets.wantsDM?.[guildId]) {
+      const now = new Date();
+      const currentUTCHours = now.getUTCHours();
+      const currentUTCMinutes = now.getUTCMinutes();
+      const currentUTCSeconds = now.getUTCSeconds();
+      const currentTimeInSeconds = (currentUTCHours * 3600) + (currentUTCMinutes * 60) + currentUTCSeconds;
+
+      // For each user in the alliance that wants DMs
+      for (const [userId, offset] of Object.entries(allianceOffsets)) {
+        if (!offsets.wantsDM[guildId][userId]) continue;
+
+        let userStartTimeInSeconds = centerTimeInSeconds - (RALLY_STAGE_TIME + offset);
+        
+        if (userStartTimeInSeconds < 0) {
+          userStartTimeInSeconds += 24 * 3600;
+        }
+        if (userStartTimeInSeconds >= 24 * 3600) {
+          userStartTimeInSeconds -= 24 * 3600;
+        }
+
+        let delayInSeconds;
+        if (userStartTimeInSeconds > currentTimeInSeconds) {
+          delayInSeconds = userStartTimeInSeconds - currentTimeInSeconds;
+        } else {
+          delayInSeconds = (24 * 3600 - currentTimeInSeconds) + userStartTimeInSeconds;
+        }
+
+        // Subtract 2 seconds for the early notification
+        delayInSeconds -= 2;
+
+        // Only schedule if the time hasn't passed and is within 6 hours
+        if (delayInSeconds > 0 && delayInSeconds <= 21600) {
+          const startHour = Math.floor(userStartTimeInSeconds / 3600);
+          const remainder = userStartTimeInSeconds % 3600;
+          const startMinute = Math.floor(remainder / 60);
+          const startSecond = remainder % 60;
+          const startTime = formatTime(startHour, startMinute, startSecond);
+
+          await scheduleRallyDM(interaction, userId, alliance, startTime, delayInSeconds);
+        }
+      }
     }
 
     // Create refresh button
