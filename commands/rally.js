@@ -123,6 +123,7 @@ module.exports = {
 
     // Schedule DMs for users who want notifications
     if (offsets.wantsDM?.[guildId]) {
+      console.log('Found wantsDM for guild:', guildId);
       const now = new Date();
       const currentUTCHours = now.getUTCHours();
       const currentUTCMinutes = now.getUTCMinutes();
@@ -131,6 +132,7 @@ module.exports = {
 
       // For each user in the alliance that wants DMs
       for (const [userId, offset] of Object.entries(allianceOffsets)) {
+        console.log('Checking user:', userId, 'wantsDM:', offsets.wantsDM[guildId][userId]);
         if (!offsets.wantsDM[guildId][userId]) continue;
 
         let userStartTimeInSeconds = centerTimeInSeconds - (RALLY_STAGE_TIME + offset);
@@ -160,9 +162,14 @@ module.exports = {
           const startSecond = remainder % 60;
           const startTime = formatTime(startHour, startMinute, startSecond);
 
+          console.log('Scheduling DM for user:', userId, 'at time:', startTime, 'with delay:', delayInSeconds);
           await scheduleRallyDM(interaction, userId, alliance, startTime, delayInSeconds);
+        } else {
+          console.log('Not scheduling DM - invalid delay:', delayInSeconds);
         }
       }
+    } else {
+      console.log('No users want DMs in guild:', guildId);
     }
 
     // Create refresh button
