@@ -185,11 +185,13 @@ module.exports = {
     const response = generateRallyMessage(alliance, timeString, allianceOffsets, centerTimeInSeconds);
 
     // Send message with refresh button
-    const message = await interaction.reply({
+    await interaction.reply({
       content: response,
       components: [row],
-      withResponse: true
     });
+
+    // Get the replied message
+    const message = await interaction.fetchReply();
 
     // Create button collector
     const collector = message.createMessageComponentCollector({ time: REFRESH_BUTTON_DURATION });
