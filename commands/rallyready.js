@@ -125,6 +125,7 @@ function generateRallyReadyMessage(alliance, firstStartTime, allianceOffsets, fi
     // Debug logging
     console.log(`Organizing users by wave for alliance ${alliance}`);
     console.log(`Total users: ${Object.keys(allianceOffsets).length}`);
+    console.log(`Full offsets object:`, JSON.stringify(offsets, null, 2));
     
     for (const key of Object.keys(allianceOffsets)) {
       const userOffset = allianceOffsets[key];
@@ -133,16 +134,37 @@ function generateRallyReadyMessage(alliance, firstStartTime, allianceOffsets, fi
       console.log(`Processing user ${key}`);
       
       // Check if userWaves structure exists
-      if (!offsets.userWaves || !offsets.userWaves[guildId] || !offsets.userWaves[guildId][alliance]) {
-        console.log(`No userWaves structure for alliance ${alliance}`);
+      if (!offsets.userWaves) {
+        console.log(`No userWaves structure at all`);
         noWaveUsers.push({ key, userOffset });
         continue;
       }
       
-      const waveNumber = offsets.userWaves[guildId][alliance][key] || 0;
+      if (!offsets.userWaves[guildId]) {
+        console.log(`No userWaves structure for guild ${guildId}`);
+        noWaveUsers.push({ key, userOffset });
+        continue;
+      }
+      
+      if (!offsets.userWaves[guildId][alliance]) {
+        console.log(`No userWaves structure for alliance ${alliance} in guild ${guildId}`);
+        noWaveUsers.push({ key, userOffset });
+        continue;
+      }
+      
+      // Check if this specific user has a wave assignment
+      if (!offsets.userWaves[guildId][alliance][key]) {
+        console.log(`User ${key} has no wave assignment`);
+        noWaveUsers.push({ key, userOffset });
+        continue;
+      }
+      
+      const waveNumber = offsets.userWaves[guildId][alliance][key];
       console.log(`User ${key} is assigned to wave ${waveNumber}`);
       
-      if (waveNumber === 0) {
+      // Check if the wave number is valid (greater than 0)
+      if (!waveNumber || waveNumber <= 0) {
+        console.log(`User ${key} has invalid wave number: ${waveNumber}`);
         noWaveUsers.push({ key, userOffset });
       } else {
         if (!waveGroups[waveNumber]) {
