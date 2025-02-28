@@ -31,6 +31,10 @@ module.exports = {
     ),
   async execute(interaction) {
     try {
+      // Log the raw interaction options for debugging
+      console.log('Raw interaction options:');
+      console.log(interaction.options._hoistedOptions);
+      
       // Gather inputs
       const personName = interaction.options.getString('name');
       const neededSeconds = interaction.options.getInteger('seconds');
@@ -108,6 +112,7 @@ module.exports = {
       
       // Verify the save worked
       console.log(`After save, userWaves for ${key}: ${JSON.stringify(offsets.userWaves[guildId][alliance][key])}`);
+      console.log(`Full userWaves structure: ${JSON.stringify(offsets.userWaves)}`);
 
       // Prepare response message
       let responseMsg = `Set march time for **${personName}** in alliance **${alliance}** to **${neededSeconds} seconds**.`;
@@ -125,7 +130,7 @@ module.exports = {
       console.error('Error in setother command:', error);
       if (!interaction.replied) {
         await interaction.reply({ 
-          content: 'There was an error processing your command. Make sure to use the correct format: `/setother name:PlayerName seconds:10 alliance:NWO wave:1`', 
+          content: 'There was an error processing your command. Make sure to use the correct format: `/setother name:PlayerName seconds:10 alliance:NWO wave:1`\n\nNote: Discord slash commands require you to use the parameter names exactly as shown. If you type `/setother PlayerName 10 NWO waves:1`, it will not work correctly.', 
           ephemeral: true 
         });
       }
