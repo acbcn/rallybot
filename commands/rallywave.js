@@ -29,20 +29,25 @@ module.exports = {
       const guildId = interaction.guildId;
       let allianceInput = interaction.options.getString('alliance');
       
-      // Check if alliance contains "wave:" which indicates incorrect parameter usage
-      if (allianceInput.toLowerCase().includes('wave:')) {
+      // Extract only the first 3 characters for alliance code
+      // This handles cases where users type "NWO wave:1" as the alliance
+      let alliance = '';
+      if (allianceInput && allianceInput.length > 0) {
+        // Take up to the first 3 characters and convert to uppercase
+        alliance = allianceInput.substring(0, 3).toUpperCase();
+        
+        // If the alliance input contains more than 3 characters or includes "wave:"
+        if (allianceInput.length > 3 || allianceInput.toLowerCase().includes('wave:')) {
+          console.log(`Alliance input "${allianceInput}" was trimmed to "${alliance}"`);
+        }
+      } else {
         return interaction.reply({
-          content: '⚠️ **Error**: It looks like you\'re trying to include the wave in the alliance parameter.\n\n' +
-                  'Discord slash commands require you to use the parameter names exactly as shown:\n' +
-                  '✅ Correct: `/rallywave alliance:NWO wave:1 offset:15`\n' +
-                  '❌ Incorrect: `/rallywave NWO wave:1 offset:15`\n\n' +
-                  'Please try again with the correct format.',
+          content: '⚠️ **Error**: Alliance abbreviation is required.\n\n' +
+                  'Please provide a 3-letter alliance abbreviation.',
           ephemeral: true
         });
       }
       
-      // Convert alliance to uppercase
-      const alliance = allianceInput.toUpperCase();
       const waveNumber = interaction.options.getInteger('wave');
       const timeOffset = interaction.options.getInteger('offset');
 
@@ -50,7 +55,7 @@ module.exports = {
       console.log('rallywave command parameters:');
       console.log(`Guild ID: ${guildId}`);
       console.log(`Alliance (raw): ${allianceInput}`);
-      console.log(`Alliance (uppercase): ${alliance}`);
+      console.log(`Alliance (trimmed): ${alliance}`);
       console.log(`Wave: ${waveNumber}`);
       console.log(`Offset: ${timeOffset}`);
 
@@ -85,6 +90,12 @@ module.exports = {
                       `${timeOffset} seconds after center`;
 
       let responseMsg = `Wave ${waveNumber} for alliance **${alliance}** will hit ${offsetText}.`;
+      
+      // If the alliance was trimmed, add a note about it
+      if (allianceInput.length > 3 || allianceInput.toLowerCase().includes('wave:')) {
+        responseMsg += `\n\n⚠️ Note: Your alliance input "${allianceInput}" was automatically trimmed to "${alliance}".`;
+      }
+      
       responseMsg += `\n\nTo assign users to this wave, use:\n\`/settime seconds:10 alliance:${alliance} wave:${waveNumber}\``;
 
       await interaction.reply({
