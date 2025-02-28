@@ -38,8 +38,23 @@ module.exports = {
       // Gather inputs
       const personName = interaction.options.getString('name');
       const neededSeconds = interaction.options.getInteger('seconds');
-      const alliance = interaction.options.getString('alliance').toUpperCase();
+      let allianceInput = interaction.options.getString('alliance');
       const guildId = interaction.guildId;
+      
+      // Check if alliance contains "wave:" which indicates incorrect parameter usage
+      if (allianceInput.toLowerCase().includes('wave:')) {
+        return interaction.reply({
+          content: '⚠️ **Error**: It looks like you\'re trying to include the wave in the alliance parameter.\n\n' +
+                  'Discord slash commands require you to use the parameter names exactly as shown:\n' +
+                  '✅ Correct: `/setother name:PlayerName seconds:10 alliance:NWO wave:1`\n' +
+                  '❌ Incorrect: `/setother PlayerName 10 NWO wave:1`\n\n' +
+                  'Please try again with the correct format.',
+          ephemeral: true
+        });
+      }
+      
+      // Convert alliance to uppercase
+      const alliance = allianceInput.toUpperCase();
       const wave = interaction.options.getInteger('wave');
 
       // Debug logging
@@ -47,7 +62,7 @@ module.exports = {
       console.log(`Person Name: ${personName}`);
       console.log(`Guild ID: ${guildId}`);
       console.log(`Seconds: ${neededSeconds}`);
-      console.log(`Alliance (raw): ${interaction.options.getString('alliance')}`);
+      console.log(`Alliance (raw): ${allianceInput}`);
       console.log(`Alliance (uppercase): ${alliance}`);
       console.log(`Wave (raw): ${wave}`);
       console.log(`Wave (type): ${typeof wave}`);
@@ -130,7 +145,10 @@ module.exports = {
       console.error('Error in setother command:', error);
       if (!interaction.replied) {
         await interaction.reply({ 
-          content: 'There was an error processing your command. Make sure to use the correct format: `/setother name:PlayerName seconds:10 alliance:NWO wave:1`\n\nNote: Discord slash commands require you to use the parameter names exactly as shown. If you type `/setother PlayerName 10 NWO waves:1`, it will not work correctly.', 
+          content: 'There was an error processing your command. Make sure to use the correct format: `/setother name:PlayerName seconds:10 alliance:NWO wave:1`\n\n' +
+                  '⚠️ **Important**: Discord slash commands require you to use the parameter names exactly as shown.\n' +
+                  '✅ Correct: `/setother name:PlayerName seconds:10 alliance:NWO wave:1`\n' +
+                  '❌ Incorrect: `/setother PlayerName 10 NWO wave:1`', 
           ephemeral: true 
         });
       }

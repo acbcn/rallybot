@@ -27,14 +27,29 @@ module.exports = {
     try {
       // Get inputs
       const guildId = interaction.guildId;
-      const alliance = interaction.options.getString('alliance').toUpperCase();
+      let allianceInput = interaction.options.getString('alliance');
+      
+      // Check if alliance contains "wave:" which indicates incorrect parameter usage
+      if (allianceInput.toLowerCase().includes('wave:')) {
+        return interaction.reply({
+          content: '⚠️ **Error**: It looks like you\'re trying to include the wave in the alliance parameter.\n\n' +
+                  'Discord slash commands require you to use the parameter names exactly as shown:\n' +
+                  '✅ Correct: `/rallywave alliance:NWO wave:1 offset:15`\n' +
+                  '❌ Incorrect: `/rallywave NWO wave:1 offset:15`\n\n' +
+                  'Please try again with the correct format.',
+          ephemeral: true
+        });
+      }
+      
+      // Convert alliance to uppercase
+      const alliance = allianceInput.toUpperCase();
       const waveNumber = interaction.options.getInteger('wave');
       const timeOffset = interaction.options.getInteger('offset');
 
       // Debug logging
       console.log('rallywave command parameters:');
       console.log(`Guild ID: ${guildId}`);
-      console.log(`Alliance (raw): ${interaction.options.getString('alliance')}`);
+      console.log(`Alliance (raw): ${allianceInput}`);
       console.log(`Alliance (uppercase): ${alliance}`);
       console.log(`Wave: ${waveNumber}`);
       console.log(`Offset: ${timeOffset}`);
@@ -80,7 +95,10 @@ module.exports = {
       console.error('Error in rallywave command:', error);
       if (!interaction.replied) {
         await interaction.reply({ 
-          content: 'There was an error processing your command. Make sure to use the correct format: `/rallywave alliance:NWO wave:1 offset:15`', 
+          content: 'There was an error processing your command. Make sure to use the correct format:\n\n' +
+                  '⚠️ **Important**: Discord slash commands require you to use the parameter names exactly as shown.\n' +
+                  '✅ Correct: `/rallywave alliance:NWO wave:1 offset:15`\n' +
+                  '❌ Incorrect: `/rallywave NWO wave:1 offset:15`', 
           ephemeral: true 
         });
       }
