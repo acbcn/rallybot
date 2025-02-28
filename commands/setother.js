@@ -8,25 +8,25 @@ module.exports = {
     .addStringOption(option =>
       option
         .setName('name')
-        .setDescription('Name of the person.')
+        .setDescription('Name of the person (e.g., PlayerName)')
         .setRequired(true)
     )
     .addIntegerOption(option =>
       option
         .setName('seconds')
-        .setDescription('March Time in seconds.')
+        .setDescription('Their march time in seconds (e.g., 10 for 10 seconds)')
         .setRequired(true)
     )
     .addStringOption(option =>
       option
         .setName('alliance')
-        .setDescription('3-letter alliance abbreviation.')
+        .setDescription('Their 3-letter alliance abbreviation (e.g., NWO)')
         .setRequired(true)
     )
     .addIntegerOption(option =>
       option
         .setName('wave')
-        .setDescription('Optional: Wave number for coordinated attacks (1, 2, 3, etc.)')
+        .setDescription('Wave number for coordinated attacks (e.g., 1 for Wave 1)')
         .setRequired(false)
     ),
   async execute(interaction) {
@@ -113,6 +113,8 @@ module.exports = {
       let responseMsg = `Set march time for **${personName}** in alliance **${alliance}** to **${neededSeconds} seconds**.`;
       if (wave !== null && wave !== undefined) {
         responseMsg += ` Assigned to wave **${wave}**.`;
+      } else {
+        responseMsg += `\n\nTo assign them to a wave, use the wave parameter: \`/setother name:${personName} seconds:${neededSeconds} alliance:${alliance} wave:1\``;
       }
 
       await interaction.reply({
@@ -123,7 +125,7 @@ module.exports = {
       console.error('Error in setother command:', error);
       if (!interaction.replied) {
         await interaction.reply({ 
-          content: 'There was an error processing your command.', 
+          content: 'There was an error processing your command. Make sure to use the correct format: `/setother name:PlayerName seconds:10 alliance:NWO wave:1`', 
           ephemeral: true 
         });
       }

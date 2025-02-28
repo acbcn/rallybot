@@ -8,13 +8,13 @@ module.exports = {
     .addIntegerOption(option =>
       option
         .setName('seconds')
-        .setDescription('March Time in seconds.')
+        .setDescription('Your march time in seconds (e.g., 10 for 10 seconds)')
         .setRequired(true)
     )
     .addStringOption(option =>
       option
         .setName('alliance')
-        .setDescription('3-letter alliance abbreviation.')
+        .setDescription('Your 3-letter alliance abbreviation (e.g., NWO)')
         .setRequired(true)
     )
     .addIntegerOption(option =>
@@ -95,6 +95,8 @@ module.exports = {
       let responseMsg = `You've been set to alliance **${alliance}** with a march time of **${neededSeconds}s**.`;
       if (wave !== null && wave !== undefined) {
         responseMsg += ` You are assigned to wave **${wave}**.`;
+      } else {
+        responseMsg += `\n\nTo assign yourself to a wave, use the wave parameter: \`/settime seconds:${neededSeconds} alliance:${alliance} wave:1\``;
       }
 
       await interaction.reply({
@@ -105,7 +107,7 @@ module.exports = {
       console.error('Error in settime command:', error);
       if (!interaction.replied) {
         await interaction.reply({ 
-          content: 'There was an error processing your command.', 
+          content: 'There was an error processing your command. Make sure to use the correct format: `/settime seconds:10 alliance:NWO wave:1`', 
           ephemeral: true 
         });
       }

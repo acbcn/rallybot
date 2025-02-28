@@ -8,13 +8,13 @@ module.exports = {
     .addStringOption(option =>
       option
         .setName('alliance')
-        .setDescription('3-letter alliance abbreviation.')
+        .setDescription('3-letter alliance abbreviation (e.g., NWO)')
         .setRequired(true)
     )
     .addIntegerOption(option =>
       option
         .setName('wave')
-        .setDescription('Wave number (1, 2, 3, etc.)')
+        .setDescription('Wave number (e.g., 1 for Wave 1)')
         .setRequired(true)
     )
     .addIntegerOption(option =>
@@ -30,6 +30,14 @@ module.exports = {
       const alliance = interaction.options.getString('alliance').toUpperCase();
       const waveNumber = interaction.options.getInteger('wave');
       const timeOffset = interaction.options.getInteger('offset');
+
+      // Debug logging
+      console.log('rallywave command parameters:');
+      console.log(`Guild ID: ${guildId}`);
+      console.log(`Alliance (raw): ${interaction.options.getString('alliance')}`);
+      console.log(`Alliance (uppercase): ${alliance}`);
+      console.log(`Wave: ${waveNumber}`);
+      console.log(`Offset: ${timeOffset}`);
 
       // Validate inputs
       if (waveNumber < 1) {
@@ -61,15 +69,18 @@ module.exports = {
                       timeOffset < 0 ? `${Math.abs(timeOffset)} seconds before center` :
                       `${timeOffset} seconds after center`;
 
+      let responseMsg = `Wave ${waveNumber} for alliance **${alliance}** will hit ${offsetText}.`;
+      responseMsg += `\n\nTo assign users to this wave, use:\n\`/settime seconds:10 alliance:${alliance} wave:${waveNumber}\``;
+
       await interaction.reply({
-        content: `Wave ${waveNumber} for alliance **${alliance}** will hit ${offsetText}.`,
+        content: responseMsg,
         ephemeral: true
       });
     } catch (error) {
       console.error('Error in rallywave command:', error);
       if (!interaction.replied) {
         await interaction.reply({ 
-          content: 'There was an error processing your command.', 
+          content: 'There was an error processing your command. Make sure to use the correct format: `/rallywave alliance:NWO wave:1 offset:15`', 
           ephemeral: true 
         });
       }
