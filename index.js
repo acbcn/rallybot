@@ -15,6 +15,17 @@ const path = require('node:path');
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const http = require('http');
 
+// Run deploy-commands script if all required environment variables are available
+if (process.env.DISCORD_TOKEN && process.env.CLIENT_ID) {
+  console.log('Deploying commands...');
+  try {
+    require('./scripts/deploy-commands.js');
+    console.log('Commands deployed successfully!');
+  } catch (error) {
+    console.error('Error deploying commands:', error);
+  }
+}
+
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
 
 client.commands = new Collection();
