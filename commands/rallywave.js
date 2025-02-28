@@ -32,13 +32,24 @@ module.exports = {
       // Extract only the first 3 characters for alliance code
       // This handles cases where users type "NWO wave:1" as the alliance
       let alliance = '';
+      let extractedWave = null;
+      let wasAllianceTrimmed = false;
+      
       if (allianceInput && allianceInput.length > 0) {
         // Take up to the first 3 characters and convert to uppercase
         alliance = allianceInput.substring(0, 3).toUpperCase();
         
+        // Check if the input contains "wave:" to extract wave number
+        const waveMatch = allianceInput.match(/wave:(\d+)/i);
+        if (waveMatch && waveMatch[1]) {
+          extractedWave = parseInt(waveMatch[1], 10);
+          console.log(`Extracted wave ${extractedWave} from alliance input "${allianceInput}"`);
+        }
+        
         // If the alliance input contains more than 3 characters or includes "wave:"
         if (allianceInput.length > 3 || allianceInput.toLowerCase().includes('wave:')) {
           console.log(`Alliance input "${allianceInput}" was trimmed to "${alliance}"`);
+          wasAllianceTrimmed = true;
         }
       } else {
         return interaction.reply({
@@ -48,7 +59,14 @@ module.exports = {
         });
       }
       
-      const waveNumber = interaction.options.getInteger('wave');
+      // Get wave parameter and ensure it's properly handled
+      // If wave was explicitly provided, use that; otherwise use the extracted wave
+      let waveNumber = interaction.options.getInteger('wave');
+      if (waveNumber === null && extractedWave !== null) {
+        waveNumber = extractedWave;
+        console.log(`Using wave ${waveNumber} extracted from alliance input`);
+      }
+      
       const timeOffset = interaction.options.getInteger('offset');
 
       // Debug logging
@@ -92,7 +110,7 @@ module.exports = {
       let responseMsg = `Wave ${waveNumber} for alliance **${alliance}** will hit ${offsetText}.`;
       
       // If the alliance was trimmed, add a note about it
-      if (allianceInput.length > 3 || allianceInput.toLowerCase().includes('wave:')) {
+      if (wasAllianceTrimmed) {
         responseMsg += `\n\n⚠️ Note: Your alliance input "${allianceInput}" was automatically trimmed to "${alliance}".`;
       }
       
