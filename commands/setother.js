@@ -22,6 +22,12 @@ module.exports = {
         .setName('alliance')
         .setDescription('3-letter alliance abbreviation.')
         .setRequired(true)
+    )
+    .addIntegerOption(option =>
+      option
+        .setName('wave')
+        .setDescription('Optional: Wave number for coordinated attacks (1, 2, 3, etc.)')
+        .setRequired(false)
     ),
   async execute(interaction) {
     try {
@@ -30,6 +36,7 @@ module.exports = {
       const neededSeconds = interaction.options.getInteger('seconds');
       const alliance = interaction.options.getString('alliance').toUpperCase();
       const guildId = interaction.guildId;
+      const wave = interaction.options.getInteger('wave');
 
       // Initialize nested objects safely
       offsets[guildId] = offsets[guildId] || {};
@@ -58,11 +65,34 @@ module.exports = {
       // Store offset
       offsets[guildId][alliance][key] = neededSeconds;
 
+      // Handle wave assignment if provided
+      if (wave !== null) {
+        // Initialize user waves structure if it doesn't exist
+        if (!offsets.userWaves) {
+          offsets.userWaves = {};
+        }
+        if (!offsets.userWaves[guildId]) {
+          offsets.userWaves[guildId] = {};
+        }
+        if (!offsets.userWaves[guildId][alliance]) {
+          offsets.userWaves[guildId][alliance] = {};
+        }
+
+        // Set the user's wave
+        offsets.userWaves[guildId][alliance][key] = wave;
+      }
+
       // Save to JSON
       saveOffsets();
 
+      // Prepare response message
+      let responseMsg = `Set march time for **${personName}** in alliance **${alliance}** to **${neededSeconds} seconds**.`;
+      if (wave !== null) {
+        responseMsg += ` Assigned to wave **${wave}**.`;
+      }
+
       await interaction.reply({
-        content: `Set march time for **${personName}** in alliance **${alliance}** to **${neededSeconds} seconds**.`,
+        content: responseMsg,
         ephemeral: true
       });
     } catch (error) {

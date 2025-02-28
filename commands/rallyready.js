@@ -50,8 +50,27 @@ async function scheduleRallyDM(interaction, userId, alliance, startTime, delayIn
   scheduledDMs.set(notificationKey, timeoutId);
 }
 
+// Helper function to get wave offset for a user
+function getWaveOffset(guildId, alliance, userId) {
+  // Check if user is assigned to a wave
+  if (!offsets.userWaves?.[guildId]?.[alliance]?.[userId]) {
+    return 0; // No wave assigned, no offset
+  }
+  
+  // Get the wave number
+  const waveNumber = offsets.userWaves[guildId][alliance][userId];
+  
+  // Check if this wave has an offset defined
+  if (!offsets.waves?.[guildId]?.[alliance]?.[waveNumber]) {
+    return 0; // Wave has no offset defined
+  }
+  
+  // Return the wave's offset
+  return offsets.waves[guildId][alliance][waveNumber];
+}
+
 // Helper function to generate the rallyready message
-function generateRallyReadyMessage(alliance, firstStartTime, allianceOffsets, firstStartTimeInSeconds) {
+function generateRallyReadyMessage(alliance, firstStartTime, allianceOffsets, firstStartTimeInSeconds, useWaves = false, guildId) {
   const now = new Date();
   const currentUTC = formatTime(now.getUTCHours(), now.getUTCMinutes(), now.getUTCSeconds());
 
@@ -78,37 +97,149 @@ function generateRallyReadyMessage(alliance, firstStartTime, allianceOffsets, fi
   const centerTime = formatTime(centerHour, centerMinute, centerSecond);
 
   let response = `**Rally Ready for Alliance ${alliance}**\n`;
+  
+  if (useWaves) {
+    response = `**Rally Ready for Alliance ${alliance} (WAVES ACTIVE)**\n`;
+  }
+  
   response += `🎯 Hit Center at **${centerTime} UTC**\n`;
   response += `🕒 Current UTC Time: **${currentUTC}**\n\n`;
-  response += `**Start Times:**\n`;
-
-  for (const key of Object.keys(allianceOffsets)) {
-    const userOffset = allianceOffsets[key];
+  
+  // If using waves, organize users by wave
+  if (useWaves) {
+    // Group users by wave
+    const waveGroups = {};
+    const noWaveUsers = [];
     
-    // Calculate this user's start time based on the center time
-    let startTimeInSeconds = centerTimeInSeconds - (RALLY_STAGE_TIME + userOffset);
-
-    if (startTimeInSeconds < 0) {
-      startTimeInSeconds += 24 * 3600;
+    for (const key of Object.keys(allianceOffsets)) {
+      const userOffset = allianceOffsets[key];
+      const waveNumber = offsets.userWaves?.[guildId]?.[alliance]?.[key] || 0;
+      
+      if (waveNumber === 0) {
+        noWaveUsers.push({ key, userOffset });
+      } else {
+        if (!waveGroups[waveNumber]) {
+          waveGroups[waveNumber] = [];
+        }
+        waveGroups[waveNumber].push({ key, userOffset });
+      }
     }
-    if (startTimeInSeconds >= 24 * 3600) {
-      startTimeInSeconds -= 24 * 3600;
+    
+    // Display each wave group
+    const sortedWaves = Object.keys(waveGroups).sort((a, b) => parseInt(a) - parseInt(b));
+    
+    for (const waveNumber of sortedWaves) {
+      const waveOffset = offsets.waves?.[guildId]?.[alliance]?.[waveNumber] || 0;
+      const waveUsers = waveGroups[waveNumber];
+      
+      let waveTitle;
+      if (waveOffset === 0) {
+        waveTitle = `**WAVE ${waveNumber} (CENTER):**\n`;
+      } else if (waveOffset < 0) {
+        waveTitle = `**WAVE ${waveNumber} (${Math.abs(waveOffset)}s BEFORE):**\n`;
+      } else {
+        waveTitle = `**WAVE ${waveNumber} (${waveOffset}s AFTER):**\n`;
+      }
+      
+      response += waveTitle;
+      
+      // Calculate adjusted center time for this wave
+      const waveCenterTimeInSeconds = centerTimeInSeconds + waveOffset;
+      
+      // Display each user in this wave
+      for (const { key, userOffset } of waveUsers) {
+        // Calculate this user's start time based on the center time
+        let startTimeInSeconds = waveCenterTimeInSeconds - (RALLY_STAGE_TIME + userOffset);
+
+        if (startTimeInSeconds < 0) {
+          startTimeInSeconds += 24 * 3600;
+        }
+        if (startTimeInSeconds >= 24 * 3600) {
+          startTimeInSeconds -= 24 * 3600;
+        }
+
+        const startHour = Math.floor(startTimeInSeconds / 3600);
+        const remainder = startTimeInSeconds % 3600;
+        const startMinute = Math.floor(remainder / 60);
+        const startSecond = remainder % 60;
+        const startTime = formatTime(startHour, startMinute, startSecond);
+
+        let displayName;
+        if (key.startsWith('NONDISCORD:')) {
+          displayName = key.replace('NONDISCORD:', '');
+        } else {
+          displayName = `<@${key}>`;
+        }
+
+        response += `${displayName}: **${startTime} UTC** (needs ${userOffset}s)\n`;
+      }
+      
+      response += '\n';
     }
+    
+    // Display users not in any wave
+    if (noWaveUsers.length > 0) {
+      response += `**MAIN WAVE:**\n`;
+      
+      for (const { key, userOffset } of noWaveUsers) {
+        // Calculate this user's start time based on the center time
+        let startTimeInSeconds = centerTimeInSeconds - (RALLY_STAGE_TIME + userOffset);
 
-    const startHour = Math.floor(startTimeInSeconds / 3600);
-    const remainder = startTimeInSeconds % 3600;
-    const startMinute = Math.floor(remainder / 60);
-    const startSecond = remainder % 60;
-    const startTime = formatTime(startHour, startMinute, startSecond);
+        if (startTimeInSeconds < 0) {
+          startTimeInSeconds += 24 * 3600;
+        }
+        if (startTimeInSeconds >= 24 * 3600) {
+          startTimeInSeconds -= 24 * 3600;
+        }
 
-    let displayName;
-    if (key.startsWith('NONDISCORD:')) {
-      displayName = key.replace('NONDISCORD:', '');
-    } else {
-      displayName = `<@${key}>`;
+        const startHour = Math.floor(startTimeInSeconds / 3600);
+        const remainder = startTimeInSeconds % 3600;
+        const startMinute = Math.floor(remainder / 60);
+        const startSecond = remainder % 60;
+        const startTime = formatTime(startHour, startMinute, startSecond);
+
+        let displayName;
+        if (key.startsWith('NONDISCORD:')) {
+          displayName = key.replace('NONDISCORD:', '');
+        } else {
+          displayName = `<@${key}>`;
+        }
+
+        response += `${displayName}: **${startTime} UTC** (needs ${userOffset}s)\n`;
+      }
     }
+  } else {
+    // Standard display without waves
+    response += `**Start Times:**\n`;
 
-    response += `${displayName}: **${startTime} UTC** (needs ${userOffset}s)\n`;
+    for (const key of Object.keys(allianceOffsets)) {
+      const userOffset = allianceOffsets[key];
+      
+      // Calculate this user's start time based on the center time
+      let startTimeInSeconds = centerTimeInSeconds - (RALLY_STAGE_TIME + userOffset);
+
+      if (startTimeInSeconds < 0) {
+        startTimeInSeconds += 24 * 3600;
+      }
+      if (startTimeInSeconds >= 24 * 3600) {
+        startTimeInSeconds -= 24 * 3600;
+      }
+
+      const startHour = Math.floor(startTimeInSeconds / 3600);
+      const remainder = startTimeInSeconds % 3600;
+      const startMinute = Math.floor(remainder / 60);
+      const startSecond = remainder % 60;
+      const startTime = formatTime(startHour, startMinute, startSecond);
+
+      let displayName;
+      if (key.startsWith('NONDISCORD:')) {
+        displayName = key.replace('NONDISCORD:', '');
+      } else {
+        displayName = `<@${key}>`;
+      }
+
+      response += `${displayName}: **${startTime} UTC** (needs ${userOffset}s)\n`;
+    }
   }
 
   return response;
@@ -129,12 +260,19 @@ module.exports = {
         .setName('alliance')
         .setDescription('3-letter alliance abbreviation.')
         .setRequired(true)
+    )
+    .addBooleanOption(option =>
+      option
+        .setName('waves')
+        .setDescription('Use wave offsets for coordinated multi-wave attacks')
+        .setRequired(false)
     ),
   async execute(interaction) {
     // 1) Get input
     const guildId = interaction.guildId;
     const timeString = interaction.options.getString('time');
     const alliance = interaction.options.getString('alliance').toUpperCase();
+    const useWaves = interaction.options.getBoolean('waves') || false;
 
     // 2) Validate time format
     if (!timeString.includes(':')) {
@@ -185,6 +323,13 @@ module.exports = {
       );
     }
 
+    // 7) Check if waves are requested but not configured
+    if (useWaves && (!offsets.waves || !offsets.waves[guildId] || !offsets.waves[guildId][alliance])) {
+      return interaction.reply(
+        `Wave offsets are not configured for alliance **${alliance}**. Use /rallywave to set up wave offsets first.`
+      );
+    }
+
     // Find the minimum offset to determine who starts first
     let minOffset = Number.MAX_SAFE_INTEGER;
     for (const offset of Object.values(allianceOffsets)) {
@@ -218,9 +363,18 @@ module.exports = {
         console.log('Checking user:', userId, 'wantsDM:', offsets.wantsDM[guildId][userId]);
         if (!offsets.wantsDM[guildId][userId]) continue;
 
-        // Calculate this user's start time based on the center time
-        let userStartTimeInSeconds = centerTimeInSeconds - (RALLY_STAGE_TIME + offset);
+        // Get wave offset if using waves
+        let waveOffset = 0;
+        if (useWaves) {
+          waveOffset = getWaveOffset(guildId, alliance, userId);
+        }
+
+        // Calculate adjusted center time for this user's wave
+        const userCenterTimeInSeconds = centerTimeInSeconds + waveOffset;
         
+        // Calculate this user's start time based on the center time
+        let userStartTimeInSeconds = userCenterTimeInSeconds - (RALLY_STAGE_TIME + offset);
+
         if (userStartTimeInSeconds < 0) {
           userStartTimeInSeconds += 24 * 3600;
         }
@@ -266,7 +420,7 @@ module.exports = {
       .addComponents(refresh);
 
     // Generate initial message
-    const response = generateRallyReadyMessage(alliance, timeString, allianceOffsets, firstStartTimeInSeconds);
+    const response = generateRallyReadyMessage(alliance, timeString, allianceOffsets, firstStartTimeInSeconds, useWaves, guildId);
 
     // Send message with refresh button
     await interaction.reply({
@@ -283,7 +437,7 @@ module.exports = {
     collector.on('collect', async i => {
       if (i.customId === 'refresh') {
         // Use the original first start time to maintain relative time calculations
-        const updatedResponse = generateRallyReadyMessage(alliance, timeString, allianceOffsets, firstStartTimeInSeconds);
+        const updatedResponse = generateRallyReadyMessage(alliance, timeString, allianceOffsets, firstStartTimeInSeconds, useWaves, guildId);
         await i.update({
           content: updatedResponse,
           components: [row]
@@ -293,7 +447,7 @@ module.exports = {
 
     collector.on('end', async () => {
       // Remove button after time expires
-      const finalResponse = generateRallyReadyMessage(alliance, timeString, allianceOffsets, firstStartTimeInSeconds);
+      const finalResponse = generateRallyReadyMessage(alliance, timeString, allianceOffsets, firstStartTimeInSeconds, useWaves, guildId);
       await message.edit({
         content: finalResponse,
         components: []
