@@ -5,8 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index.js",
-    "deploy": "node scripts/deploy-commands.js",
-    "postinstall": "node scripts/deploy-commands.js"
+    "deploy": "node scripts/deploy-commands.js"
   },
   "keywords": [],
   "author": "",
