@@ -65,7 +65,7 @@ module.exports = {
         return interaction.reply({
           content: `⚠️ Wave ${waveNumber} is not configured for alliance **${alliance}**.\n\n` +
                   `Please set up the wave first using:\n` +
-                  `\`/rallywave alliance:${alliance} wave:${waveNumber} offset:0\``,
+                  `\`/setwave alliance:${alliance} wave:${waveNumber} offset:0\``,
           ephemeral: true
         });
       }

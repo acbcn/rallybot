@@ -400,7 +400,7 @@ module.exports = {
     // 7) Check if waves are requested but not configured
     if (useWaves && (!offsets.waves || !offsets.waves[guildId] || !offsets.waves[guildId][alliance])) {
       return interaction.reply(
-        `Wave offsets are not configured for alliance **${alliance}**. Use /rallywave to set up wave offsets first.`
+        `Wave offsets are not configured for alliance **${alliance}**. Use /setwave to set up wave offsets first.`
       );
     }
 
