@@ -27,6 +27,32 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
     );
 
     console.log('Successfully reloaded application (/) commands globally. Changes will take effect within an hour.');
+    
+    // Fetch and log the registered commands to verify options
+    console.log('Fetching registered commands to verify options...');
+    const registeredCommands = await rest.get(
+      Routes.applicationCommands(process.env.CLIENT_ID)
+    );
+    
+    // Log each command and its options
+    registeredCommands.forEach(cmd => {
+      console.log(`\nCommand: ${cmd.name}`);
+      if (cmd.options && cmd.options.length > 0) {
+        console.log('Options:');
+        cmd.options.forEach(opt => {
+          console.log(`- ${opt.name} (${opt.type}) - Required: ${opt.required || false}`);
+          // Log sub-options if any (for option type 1 = SUB_COMMAND)
+          if (opt.options) {
+            opt.options.forEach(subOpt => {
+              console.log(`  - ${subOpt.name} (${subOpt.type}) - Required: ${subOpt.required || false}`);
+            });
+          }
+        });
+      } else {
+        console.log('No options');
+      }
+    });
+    
   } catch (error) {
     console.error(error);
   }
