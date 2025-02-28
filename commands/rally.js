@@ -306,6 +306,13 @@ module.exports = {
     const alliance = interaction.options.getString('alliance').toUpperCase();
     const useWaves = interaction.options.getBoolean('waves') || false;
 
+    // Debug logging for command parameters
+    console.log('rally command parameters:');
+    console.log(`Guild ID: ${guildId}`);
+    console.log(`Time: ${timeString}`);
+    console.log(`Alliance: ${alliance}`);
+    console.log(`Use Waves: ${useWaves}`);
+
     // Initialize userWaves structure if it doesn't exist
     if (!offsets.userWaves) {
       console.log('Creating userWaves structure');

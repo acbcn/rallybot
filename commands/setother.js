@@ -3,18 +3,18 @@ const { offsets, saveOffsets } = require('../offsets.js');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('setothername')
-    .setDescription('Set rally time for a non-Discord person.')
+    .setName('setother')
+    .setDescription('Set march time for someone else.')
     .addStringOption(option =>
       option
         .setName('name')
-        .setDescription('Name or nickname of the person (no @ mention).')
+        .setDescription('Name of the person.')
         .setRequired(true)
     )
     .addIntegerOption(option =>
       option
         .setName('seconds')
-        .setDescription('March time in seconds (how long they need to hit center).')
+        .setDescription('March Time in seconds.')
         .setRequired(true)
     )
     .addStringOption(option =>
@@ -36,16 +36,17 @@ module.exports = {
       const neededSeconds = interaction.options.getInteger('seconds');
       const alliance = interaction.options.getString('alliance').toUpperCase();
       const guildId = interaction.guildId;
-      let wave = interaction.options.getInteger('wave');
+      const wave = interaction.options.getInteger('wave');
 
       // Debug logging
-      console.log('setothername command parameters:');
+      console.log('setother command parameters:');
       console.log(`Person Name: ${personName}`);
       console.log(`Guild ID: ${guildId}`);
       console.log(`Seconds: ${neededSeconds}`);
       console.log(`Alliance (raw): ${interaction.options.getString('alliance')}`);
       console.log(`Alliance (uppercase): ${alliance}`);
       console.log(`Wave (raw): ${wave}`);
+      console.log(`Wave (type): ${typeof wave}`);
 
       // Initialize nested objects safely
       offsets[guildId] = offsets[guildId] || {};
@@ -93,6 +94,7 @@ module.exports = {
         console.log(`Setting user ${key} to wave ${wave}`);
         // Set the user's wave
         offsets.userWaves[guildId][alliance][key] = wave;
+        console.log(`After assignment: ${JSON.stringify(offsets.userWaves[guildId][alliance])}`);
       } else {
         console.log(`No wave specified for user ${key}, removing any existing wave assignment`);
         // Remove any existing wave assignment
@@ -103,6 +105,9 @@ module.exports = {
 
       // Save to JSON
       await saveOffsets();
+      
+      // Verify the save worked
+      console.log(`After save, userWaves for ${key}: ${JSON.stringify(offsets.userWaves[guildId][alliance][key])}`);
 
       // Prepare response message
       let responseMsg = `Set march time for **${personName}** in alliance **${alliance}** to **${neededSeconds} seconds**.`;
@@ -115,7 +120,7 @@ module.exports = {
         ephemeral: true
       });
     } catch (error) {
-      console.error('Error in setothername command:', error);
+      console.error('Error in setother command:', error);
       if (!interaction.replied) {
         await interaction.reply({ 
           content: 'There was an error processing your command.', 

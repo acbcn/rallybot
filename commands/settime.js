@@ -31,7 +31,7 @@ module.exports = {
       const alliance = interaction.options.getString('alliance').toUpperCase();
       
       // Get wave parameter and ensure it's properly handled
-      let wave = interaction.options.getInteger('wave');
+      const wave = interaction.options.getInteger('wave');
       
       // Debug logging
       console.log('settime command parameters:');
@@ -41,6 +41,7 @@ module.exports = {
       console.log(`Alliance (raw): ${interaction.options.getString('alliance')}`);
       console.log(`Alliance (uppercase): ${alliance}`);
       console.log(`Wave (raw): ${wave}`);
+      console.log(`Wave (type): ${typeof wave}`);
       
       // Initialize nested objects safely
       offsets[guildId] = offsets[guildId] || {};
@@ -75,6 +76,7 @@ module.exports = {
         console.log(`Setting user ${userId} to wave ${wave}`);
         // Set the user's wave
         offsets.userWaves[guildId][alliance][userId] = wave;
+        console.log(`After assignment: ${JSON.stringify(offsets.userWaves[guildId][alliance])}`);
       } else {
         console.log(`No wave specified for user ${userId}, removing any existing wave assignment`);
         // Remove any existing wave assignment
@@ -85,6 +87,9 @@ module.exports = {
 
       // Save changes to JSON
       await saveOffsets();
+      
+      // Verify the save worked
+      console.log(`After save, userWaves for ${userId}: ${JSON.stringify(offsets.userWaves[guildId][alliance][userId])}`);
 
       // Prepare response message
       let responseMsg = `You've been set to alliance **${alliance}** with a march time of **${neededSeconds}s**.`;
