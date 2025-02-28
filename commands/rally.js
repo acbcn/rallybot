@@ -52,21 +52,32 @@ async function scheduleRallyDM(interaction, userId, alliance, startTime, delayIn
 
 // Helper function to get wave offset for a user
 function getWaveOffset(guildId, alliance, userId) {
+  // Debug logging
+  console.log(`Getting wave offset for user ${userId} in alliance ${alliance}`);
+  console.log(`userWaves exists: ${!!offsets.userWaves}`);
+  console.log(`userWaves[guildId] exists: ${!!offsets.userWaves?.[guildId]}`);
+  console.log(`userWaves[guildId][alliance] exists: ${!!offsets.userWaves?.[guildId]?.[alliance]}`);
+  
   // Check if user is assigned to a wave
   if (!offsets.userWaves?.[guildId]?.[alliance]?.[userId]) {
+    console.log(`No wave assigned for user ${userId}`);
     return 0; // No wave assigned, no offset
   }
   
   // Get the wave number
   const waveNumber = offsets.userWaves[guildId][alliance][userId];
+  console.log(`User ${userId} is assigned to wave ${waveNumber}`);
   
   // Check if this wave has an offset defined
   if (!offsets.waves?.[guildId]?.[alliance]?.[waveNumber]) {
+    console.log(`Wave ${waveNumber} has no offset defined`);
     return 0; // Wave has no offset defined
   }
   
   // Return the wave's offset
-  return offsets.waves[guildId][alliance][waveNumber];
+  const offset = offsets.waves[guildId][alliance][waveNumber];
+  console.log(`Wave ${waveNumber} has offset ${offset}`);
+  return offset;
 }
 
 // Helper function to generate the rally message
@@ -89,9 +100,25 @@ function generateRallyMessage(alliance, targetTime, allianceOffsets, centerTimeI
     const waveGroups = {};
     const noWaveUsers = [];
     
+    // Debug logging
+    console.log(`Organizing users by wave for alliance ${alliance}`);
+    console.log(`Total users: ${Object.keys(allianceOffsets).length}`);
+    
     for (const key of Object.keys(allianceOffsets)) {
       const userOffset = allianceOffsets[key];
-      const waveNumber = offsets.userWaves?.[guildId]?.[alliance]?.[key] || 0;
+      
+      // Debug logging for each user
+      console.log(`Processing user ${key}`);
+      
+      // Check if userWaves structure exists
+      if (!offsets.userWaves || !offsets.userWaves[guildId] || !offsets.userWaves[guildId][alliance]) {
+        console.log(`No userWaves structure for alliance ${alliance}`);
+        noWaveUsers.push({ key, userOffset });
+        continue;
+      }
+      
+      const waveNumber = offsets.userWaves[guildId][alliance][key] || 0;
+      console.log(`User ${key} is assigned to wave ${waveNumber}`);
       
       if (waveNumber === 0) {
         noWaveUsers.push({ key, userOffset });
@@ -102,6 +129,10 @@ function generateRallyMessage(alliance, targetTime, allianceOffsets, centerTimeI
         waveGroups[waveNumber].push({ key, userOffset });
       }
     }
+    
+    // Debug logging for wave groups
+    console.log(`Wave groups: ${Object.keys(waveGroups).length}`);
+    console.log(`Users without wave: ${noWaveUsers.length}`);
     
     // Display each wave group
     const sortedWaves = Object.keys(waveGroups).sort((a, b) => parseInt(a) - parseInt(b));
