@@ -58,6 +58,11 @@ function getWaveOffset(guildId, alliance, userId) {
   console.log(`userWaves[guildId] exists: ${!!offsets.userWaves?.[guildId]}`);
   console.log(`userWaves[guildId][alliance] exists: ${!!offsets.userWaves?.[guildId]?.[alliance]}`);
   
+  // More detailed debugging
+  if (offsets.userWaves && offsets.userWaves[guildId] && offsets.userWaves[guildId][alliance]) {
+    console.log(`All user wave assignments for alliance ${alliance}:`, JSON.stringify(offsets.userWaves[guildId][alliance]));
+  }
+  
   // Check if user is assigned to a wave
   if (!offsets.userWaves?.[guildId]?.[alliance]?.[userId]) {
     console.log(`No wave assigned for user ${userId}`);

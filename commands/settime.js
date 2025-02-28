@@ -31,6 +31,15 @@ module.exports = {
       const alliance = interaction.options.getString('alliance').toUpperCase();
       const wave = interaction.options.getInteger('wave');
 
+      // Debug logging
+      console.log('settime command parameters:');
+      console.log(`User ID: ${userId}`);
+      console.log(`Guild ID: ${guildId}`);
+      console.log(`Seconds: ${neededSeconds}`);
+      console.log(`Alliance (raw): ${interaction.options.getString('alliance')}`);
+      console.log(`Alliance (uppercase): ${alliance}`);
+      console.log(`Wave: ${wave}`);
+
       // Initialize nested objects safely
       offsets[guildId] = offsets[guildId] || {};
       offsets[guildId][alliance] = offsets[guildId][alliance] || {};
