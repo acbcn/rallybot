@@ -29,8 +29,10 @@ module.exports = {
       const guildId = interaction.guildId;
       const neededSeconds = interaction.options.getInteger('seconds');
       const alliance = interaction.options.getString('alliance').toUpperCase();
-      const wave = interaction.options.getInteger('wave');
-
+      
+      // Get wave parameter and ensure it's properly handled
+      let wave = interaction.options.getInteger('wave');
+      
       // Debug logging
       console.log('settime command parameters:');
       console.log(`User ID: ${userId}`);
@@ -38,8 +40,8 @@ module.exports = {
       console.log(`Seconds: ${neededSeconds}`);
       console.log(`Alliance (raw): ${interaction.options.getString('alliance')}`);
       console.log(`Alliance (uppercase): ${alliance}`);
-      console.log(`Wave: ${wave}`);
-
+      console.log(`Wave (raw): ${wave}`);
+      
       // Initialize nested objects safely
       offsets[guildId] = offsets[guildId] || {};
       offsets[guildId][alliance] = offsets[guildId][alliance] || {};
@@ -54,29 +56,39 @@ module.exports = {
       // Set the user's offset
       offsets[guildId][alliance][userId] = neededSeconds;
 
-      // Handle wave assignment if provided
-      if (wave !== null) {
-        // Initialize user waves structure if it doesn't exist
-        if (!offsets.userWaves) {
-          offsets.userWaves = {};
-        }
-        if (!offsets.userWaves[guildId]) {
-          offsets.userWaves[guildId] = {};
-        }
-        if (!offsets.userWaves[guildId][alliance]) {
-          offsets.userWaves[guildId][alliance] = {};
-        }
+      // Initialize user waves structure if it doesn't exist
+      if (!offsets.userWaves) {
+        console.log('Creating userWaves structure');
+        offsets.userWaves = {};
+      }
+      if (!offsets.userWaves[guildId]) {
+        console.log(`Creating userWaves for guild ${guildId}`);
+        offsets.userWaves[guildId] = {};
+      }
+      if (!offsets.userWaves[guildId][alliance]) {
+        console.log(`Creating userWaves for alliance ${alliance}`);
+        offsets.userWaves[guildId][alliance] = {};
+      }
 
+      // Handle wave assignment
+      if (wave !== null && wave !== undefined) {
+        console.log(`Setting user ${userId} to wave ${wave}`);
         // Set the user's wave
         offsets.userWaves[guildId][alliance][userId] = wave;
+      } else {
+        console.log(`No wave specified for user ${userId}, removing any existing wave assignment`);
+        // Remove any existing wave assignment
+        if (offsets.userWaves[guildId][alliance][userId]) {
+          delete offsets.userWaves[guildId][alliance][userId];
+        }
       }
 
       // Save changes to JSON
-      saveOffsets();
+      await saveOffsets();
 
       // Prepare response message
       let responseMsg = `You've been set to alliance **${alliance}** with a march time of **${neededSeconds}s**.`;
-      if (wave !== null) {
+      if (wave !== null && wave !== undefined) {
         responseMsg += ` You are assigned to wave **${wave}**.`;
       }
 

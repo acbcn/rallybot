@@ -306,6 +306,20 @@ module.exports = {
     const alliance = interaction.options.getString('alliance').toUpperCase();
     const useWaves = interaction.options.getBoolean('waves') || false;
 
+    // Initialize userWaves structure if it doesn't exist
+    if (!offsets.userWaves) {
+      console.log('Creating userWaves structure');
+      offsets.userWaves = {};
+    }
+    if (!offsets.userWaves[guildId]) {
+      console.log(`Creating userWaves for guild ${guildId}`);
+      offsets.userWaves[guildId] = {};
+    }
+    if (!offsets.userWaves[guildId][alliance]) {
+      console.log(`Creating userWaves for alliance ${alliance}`);
+      offsets.userWaves[guildId][alliance] = {};
+    }
+
     // 2) Validate time format
     if (!timeString.includes(':')) {
       return interaction.reply('Invalid time format. Use HH:MM, e.g., 01:32');
